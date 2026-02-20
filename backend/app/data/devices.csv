@@ -1,0 +1,30 @@
+devices = [
+    {
+        "deviceName": "KT-101-001",
+        "complianceState": "compliant",
+        "operatingSystem": "Windows",
+        "lastSyncDateTime": "2026-02-01",
+        "ipAddress": "10.0.1.10"
+    },
+    {
+        "deviceName": "KT-101-001",  # duplicate
+        "complianceState": "noncompliant",
+        "operatingSystem": "Windows",
+        "lastSyncDateTime": "2026-02-02",
+        "ipAddress": "10.0.1.11"
+    },
+    {
+        "deviceName": "KT-102-001",
+        "complianceState": "compliant",
+        "operatingSystem": "Windows",
+        "lastSyncDateTime": "2026-02-03",
+        "ipAddress": "10.0.2.10"
+    },
+    {
+        "deviceName": "KT-102-002",
+        "complianceState": "noncompliant",
+        "operatingSystem": "Windows",
+        "lastSyncDateTime": "2026-02-04",
+        "ipAddress": "10.0.2.11"
+    }
+]
