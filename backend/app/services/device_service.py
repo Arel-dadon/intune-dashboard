@@ -67,8 +67,89 @@ def get_grouped_duplicates(devices):
 
 _devices_cache = None
 
-def load_devices_cached():
-    global _devices_cache
-    if _devices_cache is None:
-        _devices_cache = load_devices()
-    return _devices_cache
+from datetime import datetime
+
+
+def get_stale_devices(days: int = 7):
+    devices = load_devices()
+
+    stale = []
+    now = datetime.utcnow()
+
+    for d in devices:
+        last_sync = d.get("lastSyncDateTime")
+        if not last_sync:
+            continue
+
+        try:
+            last_sync_date = datetime.strptime(last_sync, "%Y-%m-%d")
+            delta = (now - last_sync_date).days
+
+            if delta >= days:
+                stale.append({
+                    "deviceName": d.get("deviceName"),
+                    "daysSinceLastSync": delta,
+                    "complianceState": d.get("complianceState"),
+                    "ipAddress": d.get("ipAddress")
+                })
+
+        except Exception:
+            continue
+
+    return stale
+
+
+def get_os_distribution():
+    devices = load_devices()
+    distribution = {}
+
+    for d in devices:
+        os_name = d.get("operatingSystem", "Unknown")
+        distribution[os_name] = distribution.get(os_name, 0) + 1
+
+    return distribution
+
+
+def get_compliance_breakdown():
+    devices = load_devices()
+    breakdown = {}
+
+    for d in devices:
+        state = d.get("complianceState", "unknown")
+        breakdown[state] = breakdown.get(state, 0) + 1
+
+    return breakdown
+
+
+def get_device_health():
+    devices = load_devices()
+    now = datetime.utcnow()
+
+    health = []
+
+    for d in devices:
+        last_sync = d.get("lastSyncDateTime")
+        if not last_sync:
+            continue
+
+        try:
+            last_sync_date = datetime.strptime(last_sync, "%Y-%m-%d")
+            delta = (now - last_sync_date).days
+
+            if delta <= 3:
+                status = "Healthy"
+            elif delta <= 7:
+                status = "Warning"
+            else:
+                status = "Critical"
+
+            health.append({
+                "deviceName": d.get("deviceName"),
+                "daysSinceLastSync": delta,
+                "status": status
+            })
+
+        except Exception:
+            continue
+
+    return health

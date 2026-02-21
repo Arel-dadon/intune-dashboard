@@ -1,5 +1,13 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { getDuplicates, getSummary } from "./services/api";
+import {
+  getDuplicates,
+  getSummary,
+  getStaleDevices,
+  getOSDistribution,
+  getComplianceBreakdown,
+  getDeviceHealth,
+} from "./services/api";
+
 import {
   PieChart,
   Pie,
@@ -13,20 +21,47 @@ import {
 } from "recharts";
 
 function App() {
+  // 🔹 Core dashboard state
   const [duplicates, setDuplicates] = useState([]);
   const [summary, setSummary] = useState(null);
+
+  // 🔹 Monitoring state
+  const [staleDevices, setStaleDevices] = useState([]);
+  const [osDistribution, setOSDistribution] = useState({});
+  const [compliance, setCompliance] = useState({});
+  const [health, setHealth] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
 
-  // ✅ Stable data loader
+  // ✅ Unified loader
   const loadData = useCallback(async () => {
     try {
-      const dup = await getDuplicates();
-      const sum = await getSummary();
+      const [
+        dup,
+        sum,
+        stale,
+        os,
+        comp,
+        healthData,
+      ] = await Promise.all([
+        getDuplicates(),
+        getSummary(),
+        getStaleDevices(),
+        getOSDistribution(),
+        getComplianceBreakdown(),
+        getDeviceHealth(),
+      ]);
+
       setDuplicates(dup);
       setSummary(sum);
+      setStaleDevices(stale);
+      setOSDistribution(os);
+      setCompliance(comp);
+      setHealth(healthData);
+
     } catch (err) {
       console.error("Failed loading data:", err);
     } finally {
@@ -34,14 +69,14 @@ function App() {
     }
   }, []);
 
-  // ✅ Auto refresh every 30s
+  // 🔄 Auto refresh every 30 seconds
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // ✅ Filtering + sorting
+  // 🔹 Filtering & sorting duplicates
   const processedDuplicates = useMemo(() => {
     let filtered = duplicates;
 
@@ -112,23 +147,14 @@ function App() {
       {/* 🔹 Charts */}
       <div style={styles.chartRow}>
         <PieChart width={300} height={250}>
-          <Pie
-            data={pieData}
-            dataKey="value"
-            outerRadius={100}
-            label
-          >
+          <Pie data={pieData} dataKey="value" outerRadius={100} label>
             <Cell fill="#4caf50" />
             <Cell fill="#ff4d4d" />
           </Pie>
           <Tooltip />
         </PieChart>
 
-        <BarChart
-          width={400}
-          height={250}
-          data={processedDuplicates}
-        >
+        <BarChart width={400} height={250} data={processedDuplicates}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="deviceName" />
           <YAxis />
@@ -137,7 +163,7 @@ function App() {
         </BarChart>
       </div>
 
-      {/* 🔹 Table */}
+      {/* 🔹 Duplicate Table */}
       <table style={styles.table}>
         <thead>
           <tr>
@@ -165,6 +191,29 @@ function App() {
           ))}
         </tbody>
       </table>
+
+      {/* 🔹 Monitoring Section */}
+      <h2 style={{ marginTop: "40px" }}>Device Health</h2>
+      <div>
+        <p>Healthy: {health.filter(d => d.status === "Healthy").length}</p>
+        <p>Warning: {health.filter(d => d.status === "Warning").length}</p>
+        <p>Critical: {health.filter(d => d.status === "Critical").length}</p>
+      </div>
+
+      <h2>Compliance Breakdown</h2>
+      <pre>{JSON.stringify(compliance, null, 2)}</pre>
+
+      <h2>OS Distribution</h2>
+      <pre>{JSON.stringify(osDistribution, null, 2)}</pre>
+
+      <h2>Stale Devices</h2>
+      <ul>
+        {staleDevices.map((d, i) => (
+          <li key={i}>
+            {d.deviceName} - {d.daysSinceLastSync} days - {d.complianceState}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
