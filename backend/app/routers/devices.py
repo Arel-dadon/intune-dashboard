@@ -1,15 +1,15 @@
 from fastapi import APIRouter
 from ..services.device_service import (
     get_all_devices,
+    get_grouped_duplicates,
     get_summary,
-    get_duplicate_devices
 )
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 
 
 @router.get("/")
-def all_devices():
+def get_devices():
     return get_all_devices()
 
 
@@ -19,5 +19,6 @@ def summary():
 
 
 @router.get("/duplicates")
-def duplicates(page: int = 1, page_size: int = 10):
-    return get_duplicate_devices(page, page_size)
+def duplicates():
+    devices = get_all_devices()
+    return get_grouped_duplicates(devices)
